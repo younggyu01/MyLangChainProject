@@ -3,10 +3,10 @@ name = "mylangchain-app"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "vega2kgkube",email = "vega2kgkube@gmail.com"}
+    {name = "younggyu01",email = "gugy0706@gmail.com"}
 ]
 readme = "README.md"
-requires-python = "^3.11,<=4.0"
+requires-python = "<3.15,>=3.10"
 dependencies = [
     "python-dotenv (>=1.1.1,<2.0.0)",
     "langchain (>=0.3.27,<0.4.0)",
@@ -24,7 +24,8 @@ dependencies = [
     "langsmith (>=0.4.29,<0.5.0)",
     "pypdf (>=4.2.0,<5.0.0)",
     "langchain-upstage (>=0.7.3,<0.8.0)",
-    "langchain-google-genai (>=2.1.12,<3.0.0)"
+    "langchain-google-genai (>=2.1.12,<3.0.0)",
+    "faiss-cpu (>=1.12.0,<2.0.0)"
 ]
 
 [tool.poetry]
