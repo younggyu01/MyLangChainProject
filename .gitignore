@@ -1,2 +1,6 @@
 .env
 **/faiss_index/**
+**/faiss_db/**
+**/faiss_index_upstage/**
+**/faiss_docdb/**
+**/db/**
