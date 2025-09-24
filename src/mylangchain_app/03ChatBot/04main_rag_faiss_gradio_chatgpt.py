@@ -5,13 +5,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+print(OPENAI_API_KEY[30:])
 
 # API 키 검증
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다. .env 파일을 확인해주세요.")
 
 # langchain 패키지
-from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import gradio as gr
 
@@ -19,7 +20,6 @@ import gradio as gr
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
 
@@ -72,7 +72,7 @@ def load_pdf_to_vector_store(pdf_file, chunk_size=1000, chunk_overlap=100):
 
 
 # 벡터 저장소에서 문서를 검색하고 답변을 생성
-def retrieve_and_generate_answers(vectorstore, message, temperature=0):
+def retrieve_and_generate_answers(vectorstore, message, temperature=0.5):
     try:
         # 검색 성능 향상을 위한 retriever 설정
         retriever = vectorstore.as_retriever(
@@ -81,21 +81,31 @@ def retrieve_and_generate_answers(vectorstore, message, temperature=0):
         )
 
         # 한국어에 최적화된 프롬프트
-        template = '''다음 문맥을 바탕으로 질문에 정확하게 답변해주세요. 
-문맥에서 관련 정보를 찾을 수 없다면, "제공된 문서에서 해당 정보를 찾을 수 없습니다"라고 답변해주세요.
+        system_template = '''다음 문맥을 바탕으로 질문에 정확하게 답변해주세요. 
+        문맥에서 관련 정보를 찾을 수 없다면, "제공된 문서에서 해당 정보를 찾을 수 없습니다"라고 답변해주세요.
 
-<문맥>
-{context}
-</문맥>
+        <문맥>
+        {context}
+        </문맥>
 
-질문: {input}
+        질문: {input}
 
-답변:'''
+        답변 규칙:
+        1. 문서 내용만을 근거로 답변하세요
+        2. 단계별 설명이 필요하면 순서대로 작성하세요  
+        3. 구체적인 메뉴명, 버튼명을 포함하세요
+        4. 문서에 없는 정보는 "문서에서 찾을 수 없습니다"라고 하세요
 
-        prompt = ChatPromptTemplate.from_template(template)
+        답변:'''
+
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_template),
+            ("human", "{input}")
+        ])
 
         # ChatModel 인스턴스 생성
         model = ChatOpenAI(
+            #model='gpt-4o-mini', 
             model='gpt-3.5-turbo', 
             temperature=float(temperature),
             api_key=OPENAI_API_KEY
@@ -196,8 +206,8 @@ def create_interface():
         gr.Markdown("### 질문 예시")
         example_questions = [
             "문서의 주요 내용을 요약해주세요.",
-            "기타소득에는 어떤 것들이 있나요?",
-            "세율은 어떻게 적용되나요?"
+            "이 문서에서 가장 중요한 핵심 사항은 무엇인가요?",
+            "문서에 포함된 주요 절차나 단계를 알려주세요."
         ]
         
         example_buttons = []
@@ -218,6 +228,9 @@ def create_interface():
             
             # 채팅 히스토리에 추가
             chat_history.append((message, bot_message))
+            # chat_history.append({"role": "user", "content": message})  # 사용자 메시지 추가
+            # chat_history.append({"role": "assistant", "content": bot_message})  # 봇 응답 추가
+
             return chat_history, ""
         
         # 버튼 이벤트 연결
